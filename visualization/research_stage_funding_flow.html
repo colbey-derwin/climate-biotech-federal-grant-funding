@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Federal Climate Biotech Research Stage Funding Flow</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        #chart {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        .chart-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        
+        .chart-subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .stream {
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .stream:hover {
+            opacity: 1;
+        }
+        
+        .stage-label {
+            font-size: 14px;
+            font-weight: bold;
+            fill: #333;
+            text-anchor: middle;
+        }
+        
+        .stage-amount {
+            font-size: 12px;
+            fill: #666;
+            text-anchor: middle;
+        }
+        
+        .stage-line {
+            stroke: #ddd;
+            stroke-width: 1;
+            stroke-dasharray: 3, 3;
+        }
+        
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 4px;
+            font-size: 13px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="chart">
+        <div class="chart-title">Federal Climate Biotech Research Stage Funding Flow (2019-2025)</div>
+        <div class="chart-subtitle">Federal grants (public-facing and industry-facing research) showing funding distribution across research stages</div>
+        <svg id="sankey"></svg>
+    </div>
+    <div id="tooltip"></div>
+    
+    <script>
+        const rawData = [{"stage":"Bench Scale Tech Development","category":"bio_mineral_weathering","amount":1214477.0},{"stage":"Bench Scale Tech Development","category":"biogas_gaseous_energy","amount":12264034.0},{"stage":"Bench Scale Tech Development","category":"biological_carbon_capture","amount":17706539.0},{"stage":"Bench Scale Tech Development","category":"biomining_resource_recovery","amount":24311628.0},{"stage":"Bench Scale Tech Development","category":"biopolymers_materials","amount":62836656.7300000042},{"stage":"Bench Scale Tech Development","category":"crop_productivity_traditional","amount":9818300.0},{"stage":"Bench Scale Tech Development","category":"ecosystem_monitoring","amount":17721050.0},{"stage":"Bench Scale Tech Development","category":"liquid_transportation_fuels","amount":19035737.0},{"stage":"Bench Scale Tech Development","category":"marine_aquatic_biotech","amount":20125779.0},{"stage":"Bench Scale Tech Development","category":"methane_removal_oxidation","amount":3656559.0},{"stage":"Bench Scale Tech Development","category":"other_climate_biotech","amount":1508241.0},{"stage":"Bench Scale Tech Development","category":"platform_biochemicals","amount":20069635.0},{"stage":"Bench Scale Tech Development","category":"pollution_degradation_remediation","amount":39338437.1799999997},{"stage":"Bench Scale Tech Development","category":"soil_microbiome_n_fixation","amount":21455454.0},{"stage":"Bench Scale Tech Development","category":"specialty_bioproducts","amount":27491278.5300000012},{"stage":"Bench Scale Tech Development","category":"wastewater_nutrient_recovery","amount":17539872.0},{"stage":"Deployment","category":"biogas_gaseous_energy","amount":34549996.0},{"stage":"Deployment","category":"biological_carbon_capture","amount":18955657.0},{"stage":"Deployment","category":"biopolymers_materials","amount":330000.0},{"stage":"Deployment","category":"liquid_transportation_fuels","amount":600000.0},{"stage":"Deployment","category":"marine_aquatic_biotech","amount":5237355.9399999995},{"stage":"Deployment","category":"methane_removal_oxidation","amount":1267848.0},{"stage":"Deployment","category":"other_climate_biotech","amount":19780805.0},{"stage":"Deployment","category":"platform_biochemicals","amount":200000000.0},{"stage":"Deployment","category":"pollution_degradation_remediation","amount":22157433.0},{"stage":"Piloting","category":"bio_mineral_weathering","amount":318666.0},{"stage":"Piloting","category":"biogas_gaseous_energy","amount":19446867.0},{"stage":"Piloting","category":"biological_carbon_capture","amount":3545533.0},{"stage":"Piloting","category":"biopolymers_materials","amount":16536105.0},{"stage":"Piloting","category":"crop_productivity_traditional","amount":24899257.0},{"stage":"Piloting","category":"ecosystem_monitoring","amount":4866194.0},{"stage":"Piloting","category":"liquid_transportation_fuels","amount":30062868.9399999976},{"stage":"Piloting","category":"marine_aquatic_biotech","amount":3319925.0},{"stage":"Piloting","category":"other_climate_biotech","amount":240000.0},{"stage":"Piloting","category":"platform_biochemicals","amount":5565137.0},{"stage":"Piloting","category":"pollution_degradation_remediation","amount":16302767.0},{"stage":"Piloting","category":"research_infrastructure","amount":325000.0},{"stage":"Piloting","category":"soil_microbiome_n_fixation","amount":3964492.3900000001},{"stage":"Piloting","category":"specialty_bioproducts","amount":5155516.0},{"stage":"Piloting","category":"wastewater_nutrient_recovery","amount":6847807.0},{"stage":"Use Inspired Research","category":"bio_mineral_weathering","amount":2937507.0},{"stage":"Use Inspired Research","category":"biogas_gaseous_energy","amount":7526758.0},{"stage":"Use Inspired Research","category":"biological_carbon_capture","amount":30247418.0},{"stage":"Use Inspired Research","category":"biomining_resource_recovery","amount":5690291.0},{"stage":"Use Inspired Research","category":"biopolymers_materials","amount":62795683.0},{"stage":"Use Inspired Research","category":"crop_productivity_traditional","amount":63869977.8299999982},{"stage":"Use Inspired Research","category":"ecosystem_monitoring","amount":43637963.0},{"stage":"Use Inspired Research","category":"liquid_transportation_fuels","amount":27291398.9600000009},{"stage":"Use Inspired Research","category":"marine_aquatic_biotech","amount":20404559.0},{"stage":"Use Inspired Research","category":"methane_removal_oxidation","amount":10753235.0},{"stage":"Use Inspired Research","category":"other_climate_biotech","amount":11226854.0},{"stage":"Use Inspired Research","category":"platform_biochemicals","amount":37181807.2100000009},{"stage":"Use Inspired Research","category":"pollution_degradation_remediation","amount":78355810.450000003},{"stage":"Use Inspired Research","category":"research_infrastructure","amount":353179.0},{"stage":"Use Inspired Research","category":"soil_microbiome_n_fixation","amount":59053464.9900000021},{"stage":"Use Inspired Research","category":"specialty_bioproducts","amount":23407719.0},{"stage":"Use Inspired Research","category":"wastewater_nutrient_recovery","amount":11566961.0}];
+        const stages = ["Use Inspired Research", "Bench Scale Tech Development", "Piloting", "Deployment"];
+        
+        // Get categories and sort by total funding (largest first)
+        const categoryTotals = d3.rollup(rawData, v => d3.sum(v, d => d.amount), d => d.category);
+        const categories = Array.from(categoryTotals.keys()).sort((a, b) => categoryTotals.get(b) - categoryTotals.get(a));
+        
+        // Color palette
+        const colors = [
+            '#4472C4', '#ED7D31', '#A5A5A5', '#FFC000', '#5B9BD5',
+            '#70AD47', '#264478', '#9E480E', '#636363', '#997300',
+            '#255E91', '#43682B', '#698ED0', '#F1975A', '#B7B7B7',
+            '#FFCD33'
+        ];
+        
+        const colorScale = d3.scaleOrdinal()
+            .domain(categories)
+            .range(colors);
+        
+        // Calculate stage totals
+        const stageTotals = {};
+        stages.forEach(stage => {
+            stageTotals[stage] = d3.sum(rawData.filter(d => d.stage === stage), d => d.amount);
+        });
+        
+        // SVG setup
+        const width = 1400;
+        const height = 900;
+        const margin = { top: 100, right: 200, bottom: 60, left: 250 };
+        
+        const svg = d3.select('#sankey')
+            .attr('width', width)
+            .attr('height', height);
+        
+        const tooltip = d3.select('#tooltip');
+        
+        // X scale for stages
+        const xScale = d3.scalePoint()
+            .domain(stages)
+            .range([margin.left, width - margin.right])
+            .padding(0.5);
+        
+        // Calculate max funding amount to scale thickness
+        const maxAmount = d3.max(rawData, d => d.amount);
+        
+        // Height scale - each category gets equal vertical space
+        const categoryHeight = (height - margin.top - margin.bottom) / categories.length;
+        
+        // Draw stage lines
+        stages.forEach(stage => {
+            const x = xScale(stage);
+            svg.append('line')
+                .attr('class', 'stage-line')
+                .attr('x1', x)
+                .attr('x2', x)
+                .attr('y1', margin.top - 20)
+                .attr('y2', height - margin.bottom + 20);
+        });
+        
+        // Draw stage labels
+        stages.forEach(stage => {
+            const x = xScale(stage);
+            const total = stageTotals[stage];
+            const formattedTotal = total >= 1e9 ? '$' + (total/1e9).toFixed(1) + 'B' :
+                                  total >= 1e6 ? '$' + (total/1e6).toFixed(1) + 'M' :
+                                  '$' + (total/1e3).toFixed(1) + 'K';
+            
+            svg.append('text')
+                .attr('class', 'stage-label')
+                .attr('x', x)
+                .attr('y', 40)
+                .text(stage);
+            
+            svg.append('text')
+                .attr('class', 'stage-amount')
+                .attr('x', x)
+                .attr('y', 60)
+                .text(formattedTotal);
+        });
+        
+        // Draw streams for each category - WITH SPACE BETWEEN
+        categories.forEach((category, catIdx) => {
+            const points = [];
+            
+            // Each category gets its own vertical position
+            const baseY = margin.top + (catIdx * categoryHeight) + (categoryHeight / 2);
+            
+            stages.forEach(stage => {
+                const x = xScale(stage);
+                const dataPoint = rawData.find(d => d.category === category && d.stage === stage);
+                const amount = dataPoint ? dataPoint.amount : 0;
+                
+                // Scale thickness based on amount - INCREASED for better visibility
+                const thickness = (amount / maxAmount) * (categoryHeight * 1.2); // Increased from 0.8 to 1.2
+                
+                const y0 = baseY - thickness / 2;
+                const y1 = baseY + thickness / 2;
+                
+                points.push({ x, y0, y1, amount, stage });
+            });
+            
+            // Create smooth area path
+            const area = d3.area()
+                .x(d => d.x)
+                .y0(d => d.y0)
+                .y1(d => d.y1)
+                .curve(d3.curveCatmullRom.alpha(0.5));
+            
+            svg.append('path')
+                .datum(points)
+                .attr('class', 'stream')
+                .attr('fill', colorScale(category))
+                .attr('d', area)
+                .on('mouseover', function(event, d) {
+                    const totalAmount = d3.sum(d, p => p.amount);
+                    
+                    let html = '<strong>' + category.replace(/_/g, ' ') + '</strong><br>';
+                    d.forEach(p => {
+                        if (p.amount > 0) {
+                            const formattedValue = p.amount >= 1e9 ? '$' + (p.amount/1e9).toFixed(2) + 'B' :
+                                                  p.amount >= 1e6 ? '$' + (p.amount/1e6).toFixed(1) + 'M' :
+                                                  '$' + (p.amount/1e3).toFixed(1) + 'K';
+                            html += p.stage + ': ' + formattedValue + '<br>';
+                        }
+                    });
+                    const formattedTotal = totalAmount >= 1e9 ? '$' + (totalAmount/1e9).toFixed(2) + 'B' :
+                                          totalAmount >= 1e6 ? '$' + (totalAmount/1e6).toFixed(1) + 'M' :
+                                          '$' + (totalAmount/1e3).toFixed(1) + 'K';
+                    html += '<br><strong>Total: ' + formattedTotal + '</strong>';
+                    
+                    tooltip.html(html)
+                        .style('opacity', 1)
+                        .style('left', (event.pageX + 10) + 'px')
+                        .style('top', (event.pageY - 10) + 'px');
+                })
+                .on('mouseout', function() {
+                    tooltip.style('opacity', 0);
+                });
+            
+            // Add category label on the left
+            svg.append('text')
+                .attr('x', 10)
+                .attr('y', baseY)
+                .attr('dominant-baseline', 'middle')
+                .style('font-size', '12px')
+                .style('fill', '#333')
+                .style('font-weight', '500')
+                .text(category.replace(/_/g, ' '));
+        });
+    </script>
+</body>
+</html>

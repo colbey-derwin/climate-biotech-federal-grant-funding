@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>De-risked Climate Biotech Categories</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            min-width: 1300px;
+        }
+        
+        #chart {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .chart-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        
+        .chart-subtitle {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 30px;
+            text-align: center;
+            line-height: 1.5;
+        }
+        
+        .axis-label {
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .bubble {
+            stroke: #fff;
+            stroke-width: 2;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .bubble:hover {
+            stroke-width: 3;
+        }
+        
+        .bubble.normal {
+            fill: #4472C4;
+            opacity: 0.6;
+        }
+        
+        .bubble.above-mean {
+            fill: #9370DB;
+            opacity: 0.7;
+        }
+        
+        .bubble.anomaly {
+            fill: #ED7D31;
+            opacity: 0.8;
+        }
+        
+        .grid line {
+            stroke: #e0e0e0;
+            stroke-width: 1;
+        }
+        
+        .grid path {
+            stroke: none;
+        }
+        
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            pointer-events: auto;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            min-width: 350px;
+            max-width: 550px;
+            line-height: 1.5;
+        }
+        
+        .tooltip-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+        }
+        
+        .tooltip-close:hover {
+            color: #FFA500;
+        }
+        
+        .legend {
+            font-size: 12px;
+        }
+        
+        .legend-item {
+            margin-bottom: 8px;
+        }
+        
+        .legend-circle {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        
+        .stats-box {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 13px;
+        }
+        
+        .stats-box strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="chart">
+        <div class="chart-title">De-risked Climate Biotech Categories: Government Deployment Funding</div>
+        <div class="chart-subtitle">
+            Categories with abnormally high deployment funding ratios indicate technologies<br>
+            considered proven/de-risked enough for government deployment-stage support
+        </div>
+        <svg id="scatter"></svg>
+        
+        <div class="stats-box">
+            <strong>Anomaly Detection Method:</strong><br>
+            Deployment ratio (%) = (Deployment $ / Total $) × 100<br>
+            Anomalies identified when Z-score &gt; 1.5 standard deviations above mean<br>
+            (i.e., deployment ratio &gt; mean + 1.5×σ)<br><br>
+            <strong>Statistical Summary:</strong><br>
+            Mean deployment ratio: 14.1%<br>
+            Standard deviation: 23.7%<br>
+            Anomaly threshold: &gt;49.6% deployment funding<br><br>
+            <strong>Important Caveat:</strong><br>
+            <em>Category-level deployment ratios indicate overall de-risking trends but do not mean every technology within a category is equally mature, nor does this analysis capture every climate biotech category out there. High deployment ratios typically reflect specific proven pathways receiving federal deployment support, while novel or emerging technologies within the same category may still be in research phases. Always consider individual technology readiness when interpreting these results.</em>
+        </div>
+    </div>
+    <div id="tooltip"></div>
+    
+    <script>
+        const data = [{"category":"biogas_gaseous_energy","total_funding":74037655.0,"total_grants":61,"deployment_funding":34549996.0,"deployment_grants":7,"deployment_ratio":46.6654380126,"z_score":1.3759918065,"is_anomaly":false},{"category":"soil_microbiome_n_fixation","total_funding":84890904.3800000101,"total_grants":145,"deployment_funding":0.0,"deployment_grants":0,"deployment_ratio":0.0,"z_score":-0.5962869977,"is_anomaly":false},{"category":"biological_carbon_capture","total_funding":70705147.0,"total_grants":107,"deployment_funding":18955657.0,"deployment_grants":5,"deployment_ratio":26.8094442969,"z_score":0.5367935217,"is_anomaly":false},{"category":"ecosystem_monitoring","total_funding":70433477.0,"total_grants":158,"deployment_funding":0.0,"deployment_grants":0,"deployment_ratio":0.0,"z_score":-0.5962869977,"is_anomaly":false},{"category":"wastewater_nutrient_recovery","total_funding":36004640.0,"total_grants":50,"deployment_funding":0.0,"deployment_grants":0,"deployment_ratio":0.0,"z_score":-0.5962869977,"is_anomaly":false},{"category":"bio_based_materials","total_funding":142698444.7300000191,"total_grants":165,"deployment_funding":330000.0,"deployment_grants":1,"deployment_ratio":0.2312569003,"z_score":-0.5865131028,"is_anomaly":false},{"category":"specialty_bioproducts","total_funding":56054513.5300000012,"total_grants":77,"deployment_funding":0.0,"deployment_grants":0,"deployment_ratio":0.0,"z_score":-0.5962869977,"is_anomaly":false},{"category":"pollution_degradation_remediation","total_funding":157898164.6299999952,"total_grants":350,"deployment_funding":22157433.0,"deployment_grants":18,"deployment_ratio":14.0327362588,"z_score":-0.0032042052,"is_anomaly":false},{"category":"platform_biochemicals","total_funding":270816579.2099999785,"total_grants":102,"deployment_funding":200000000.0,"deployment_grants":1,"deployment_ratio":73.8507223536,"z_score":2.5249569159,"is_anomaly":true},{"category":"crop_productivity_traditional","total_funding":102817534.8300000131,"total_grants":156,"deployment_funding":0.0,"deployment_grants":0,"deployment_ratio":0.0,"z_score":-0.5962869977,"is_anomaly":false},{"category":"marine_aquatic_biotech","total_funding":58186884.9399999976,"total_grants":77,"deployment_funding":5237355.9400000004,"deployment_grants":5,"deployment_ratio":9.0009216775,"z_score":-0.2158699739,"is_anomaly":false},{"category":"liquid_transportation_fuels","total_funding":76990004.900000006,"total_grants":89,"deployment_funding":600000.0,"deployment_grants":2,"deployment_ratio":0.7793219403,"z_score":-0.563349556,"is_anomaly":false},{"category":"methane_removal_oxidation","total_funding":15677642.0,"total_grants":36,"deployment_funding":1267848.0,"deployment_grants":1,"deployment_ratio":8.0869814478,"z_score":-0.2544969539,"is_anomaly":false},{"category":"other_climate_biotech","total_funding":32755900.0,"total_grants":31,"deployment_funding":19780805.0,"deployment_grants":2,"deployment_ratio":60.388525426,"z_score":1.955987529,"is_anomaly":true},{"category":"research_infrastructure","total_funding":678179.0,"total_grants":3,"deployment_funding":0.0,"deployment_grants":0,"deployment_ratio":0.0,"z_score":-0.5962869977,"is_anomaly":false},{"category":"bio_mineral_weathering","total_funding":4520650.0,"total_grants":15,"deployment_funding":0.0,"deployment_grants":0,"deployment_ratio":0.0,"z_score":-0.5962869977,"is_anomaly":false},{"category":"biomining_resource_recovery","total_funding":30051919.0,"total_grants":37,"deployment_funding":0.0,"deployment_grants":0,"deployment_ratio":0.0,"z_score":-0.5962869977,"is_anomaly":false}];
+        const meanRatio = 14.108549900805603;
+        const stdRatio = 23.660670039991;
+        const anomalyThreshold = 1.5;
+        
+        // Technology context blurbs for de-risked categories
+        // Based on dataset analysis (2019-2025) + web research for pre-2019 history
+        // NOTE: Only some categories have blurbs currently - we'll add more as needed
+        const techBlurbs = {
+            'platform_biochemicals': {
+                title: 'Platform Biochemicals',
+                blurb: '<strong style="font-size: 13px;">What\'s being deployed: $200M LanzaTech/Technip SECURE Project (2025)</strong><br>Converting industrial CO2 emissions to ethylene (a platform chemical) via gas fermentation. Ethylene is a building block for plastics, chemicals, and materials.<br><br><strong>What are platform biochemicals?</strong> Chemical building blocks (ethylene, organic acids, monomers, platform chemicals) produced via fermentation from sugars, biomass, or waste gases. Distinguished from liquid transportation fuels.<br><br><strong>Why is this de-risked?</strong><br><br><strong>Historical context:</strong> Ethanol distillation for fuel dates to ~1100 AD, and by 1896, Henry Ford designed his Quadricycle to run on ethanol. Gas fermentation represents the modern evolution of this ancient technology.<br><br><strong>Modern gas fermentation timeline (36 years):</strong><br><br><strong>1989-2003 (14 yrs):</strong> Dr. Gaddy (U Arkansas) pioneered CO/CO2 fermentation research. Isolated ethanol-producing bacteria (1992), built pilot plant (1994), added gasifier for fully integrated biomass-to-ethanol operation (2003). Founded company BRI (Bioengineering Resources Inc.). DOE funded 1990-93.<br><br><strong>2003-2018 (15 yrs):</strong> Three companies attempted commercialization:<br><br><strong>• INEOS Bio:</strong> Chemical giant INEOS acquired Dr. Gaddy\'s BRI (2008), built 8M gal/yr Florida facility with DOE/USDA funding (2013), sold 2016 after operational challenges (now Jupeng Bio).<br><br><strong>• Coskata:</strong> Separate syngas fermentation company (founded 2006), closed 2015.<br><br><strong>• LanzaTech:</strong> Separate company (founded 2005, New Zealand) achieved commercial operation in China 2018 (46k tons/yr ethanol from steel mill gas)—first sustained commercial success.<br><br><strong>Post-2018:</strong> Federal deployment funding arrived <em>after</em> commercial proof: $3.7M (2021), $200M (2025).<br><br><strong>Key insight:</strong> 73.9% deployment ratio reflects that largest federal investment came 7 years <em>after</em> commercial viability was demonstrated in China. Platform biochemicals (especially gas fermentation to ethylene/ethanol) are federally recognized as deployment-ready.<br><br><em style="font-size: 11px; color: #999;">Caveat: Not all platform biochemicals are equally de-risked. The high ratio reflects specific proven pathways (gas fermentation, traditional ethanol) receiving deployment support, while novel biochemical routes may still require R&D.</em><br><br><span style="font-size: 11px; color: #ccc;">Sources: Our dataset; History of Biofuel Tech; Arkansas U/OSTI (1992); Daniell/Energies (2012); DOE (2013); Vero News (2016); Köpke/Frontiers (2016); Biofuels Digest syngas interview.</span>'
+            },
+            'biogas_gaseous_energy': {
+                title: 'Biogas & Gaseous Energy', 
+                blurb: '<strong style="font-size: 13px;">What\'s being deployed: $34.5M across 45 grants (2019-2025)</strong><br>Wastewater treatment biogas systems, on-farm anaerobic digesters, and biomass gasification projects producing renewable natural gas and biogas.<br><br><strong>What is biogas/gaseous energy?</strong> Methane-rich gas produced through anaerobic digestion of organic waste (manure, wastewater, food waste) or through gasification of biomass. Used for heat, electricity, or upgraded to renewable natural gas (RNG) for pipeline injection.<br><br><strong>Why is this de-risked?</strong> Anaerobic digestion has 50+ years of commercial operation:<br><br><strong>1970s:</strong> First US farm digesters operational—McCabe Farm (Iowa), Mason-Dixon Farm (Pennsylvania)—driven by oil crisis concerns.<br><br><strong>1994:</strong> EPA/USDA launched AgSTAR program to promote biogas recovery from livestock waste.<br><br><strong>2005:</strong> Energy Policy Act established Renewable Fuel Standard (RFS), creating market value for renewable natural gas.<br><br><strong>2008:</strong> Farm Bill established REAP (Rural Energy for America Program)—primary federal funding mechanism for on-farm digesters.<br><br><strong>Key insight:</strong> 42.6% deployment ratio reflects a mature technology where federal deployment funding addresses scale-up and infrastructure integration rather than technical risk. The technology itself has been proven commercially for decades.<br><br><em style="font-size: 11px; color: #999;">Caveat: Not all biogas technologies are equally mature. The high ratio primarily reflects anaerobic digestion (proven 50+ years), while emerging gasification or novel biogas upgrading technologies may still be under development.</em><br><br><span style="font-size: 11px; color: #ccc;">Sources: Our dataset; Penn State Extension "Short History of AD"; EPA AgSTAR "Celebrating 20 Years" (2014); USDA Biogas Opportunities Roadmap.</span>'
+            },
+            'biological_carbon_capture': {
+                title: 'Biological Carbon Capture',
+                blurb: '<strong style="font-size: 13px;">What\'s being deployed: $18.9M across 7 biochar grants (2019-2025)</strong><br>All deployment funding goes to biochar production—converting forest residuals and mill waste into stable carbon via pyrolysis. Largest: $14.7M Tule River (2025) producing 4,623 tons biochar/year, sequestering 10,400+ tons CO2-eq annually.<br><br><strong>What is biochar?</strong> Charcoal produced by heating biomass in low-oxygen conditions (pyrolysis). Carbon is locked in stable form for centuries when added to soil. Used for soil amendment, carbon sequestration, and filtration.<br><br><strong>Why is biochar de-risked?</strong> Ancient technology with modern commercial validation:<br><br><strong>2,500+ years ago:</strong> Terra preta soils (Amazon) created with biochar remain fertile today.<br><br><strong>1960s:</strong> Scientifically rediscovered (Wim Sombroek).<br><br><strong>Early 2000s:</strong> Modern commercial production began. International Biochar Initiative formed 2006, first US commercial producers operational 2008-2011.<br><br><strong>2023 market dominance:</strong> Biochar = 94% of delivered carbon removal credits (vs. all other methods combined). Market reached $600M, carbon credits averaged $131/ton, major corporate buyers (Microsoft, JP Morgan).<br><br><strong>What about other biological carbon capture?</strong> Research funding ($51.7M) explores methods not yet ready for commercial deployment: algae CO2 fixation, plant-soil-microbe systems, photosynthesis-based air capture, ocean sequestration—all still require R&D to scale beyond pilot/demonstration stage.<br><br><strong>Key insight:</strong> 20.5% deployment ratio shows biochar as the <em>only</em> federally de-risked biological carbon capture pathway. Federal deployment funding (2019-2025) arrived after 2,500 years of proof, 60+ years of modern science, 15+ years of commercial operation, and 94% market dominance in 2023.<br><br><em style="font-size: 11px; color: #999;">Caveat: This category\'s moderate deployment ratio reflects that only ONE technology (biochar) has been de-risked for deployment, while all other biological carbon capture methods remain in research phase—hence the split between deployment and research funding.</em><br><br><span style="font-size: 11px; color: #ccc;">Sources: Our dataset; Wikipedia Terra Preta (2025); Sombroek (1966); IBI (2006); CDR.fyi 2023 report; Cloverly biochar market (2024).</span>'
+            },
+            'pollution_degradation_remediation': {
+                title: 'Pollution Degradation & Remediation',
+                blurb: '<strong style="font-size: 13px;">What\'s being deployed: $22.2M across multiple biological remediation technologies (2019-2025)</strong><br>In situ bioremediation ($14.6M Vermont Superfund—biobarrier trenches, amendment injection); composting/anaerobic digestion ($6.7M SWIFR grants—microbial food waste breakdown, 165+ tons/year diverted); sulfate-reducing bioreactors ($0.7M Colorado mine water); biochar stormwater filtration ($0.7M Minnesota); nature-based restoration ($0.37M Maryland); agroforestry + cover crops ($1.4M—biological nutrient reduction).<br><br><strong>What is biological pollution remediation?</strong> Using microorganisms, plants, or biological processes to break down pollutants, treat contaminated soil/water, or remove nutrients. Includes bioremediation, phytoremediation, composting, biofilters, and nature-based solutions.<br><br><strong>Why is this moderately de-risked (but not highly)?</strong> Biological remediation has 40+ years of commercial use:<br><br><strong>1970s-1980s:</strong> Bioremediation emerged for treating contaminated sites.<br><br><strong>1989:</strong> Exxon Valdez oil spill—bioremediation used at scale.<br><br><strong>1990s-present:</strong> Standard technology for Superfund sites, wastewater treatment, composting operations.<br><br><strong>However:</strong> Unlike biogas digesters or biochar pyrolysis (standardized, predictable), biological remediation effectiveness varies by site conditions, contaminant types, soil chemistry, and environmental factors. Not yet fully standardized.<br><br><strong>Key insight:</strong> 14.1% deployment ratio (at dataset mean) indicates these technologies are proven enough for deployment but haven\'t achieved the breakthrough commercialization of anomalous categories (platform biochemicals 73.9%, biogas 42.6%). Deployment is happening at meaningful scale ($22.2M) but remains site-specific rather than universally standardized.<br><br><span style="font-size: 11px; color: #ccc;">Sources: Our dataset; grant abstracts Vermont DEC, SWIFR programs, Colorado CDPHE, Minnesota MPCA, Ridge to Reefs.</span>'
+            },
+            'other_climate_biotech': {
+                title: 'Other Climate Biotech',
+                blurb: '<strong style="font-size: 13px;">What\'s being deployed: $19.8M across 2 grants (2025)</strong><br>(1) $18.8M Mission Waco (Texas)—community climate resilience deploying nature-based solutions: bioswales, constructed wetlands, rain gardens, trees, composting systems, community gardens, regenerative agriculture. (2) $1.0M Nightmute (Alaska)—ATV trail hardening using biochar asphalt for permafrost stabilization.<br><br><strong>What is "other climate biotech"?</strong> Catch-all category for grants that span multiple climate biotech fields or don\'t cleanly fit into a single category based on their primary funding purpose.<br><br><strong>Why the high deployment ratio (60.4%)?</strong> Both deployment grants deploy proven biological climate solutions (nature-based infrastructure, composting, biochar) in environmental justice contexts. These aren\'t novel technologies requiring R&D—they\'re established biological interventions being deployed in disadvantaged communities.<br><br><strong>Key insight:</strong> High deployment ratio reflects deployment of already-proven technologies (wetlands, composting, biochar) rather than funding for breakthrough innovations. Category composition is miscellaneous rather than representing a single de-risked technology pathway.<br><br><em style="font-size: 11px; color: #666;">Note: This catch-all category includes grants that span multiple climate biotech fields or don\'t cleanly fit into a single category based on their primary funding purpose.</em>'
+            }
+        };
+        
+        // SVG setup
+        const width = 1200;
+        const height = 700;
+        const margin = { top: 80, right: 140, bottom: 80, left: 80 };
+        
+        const svg = d3.select('#scatter')
+            .attr('width', width)
+            .attr('height', height);
+        
+        const tooltip = d3.select('#tooltip');
+        let tooltipPinned = false;
+        
+        // Make closeTooltip global so button onclick can access it
+        window.closeTooltip = function() {
+            tooltipPinned = false;
+            tooltip.style('opacity', 0);
+            d3.selectAll('.bubble').style('opacity', d => {
+                if (d.is_anomaly) return 0.8;
+                if (d.deployment_ratio > meanRatio) return 0.7;
+                return 0.6;
+            });
+        }
+        
+        // Close tooltip when clicking outside
+        d3.select('body').on('click', function(event) {
+            if (!event.target.closest('#tooltip') && !event.target.closest('.bubble')) {
+                window.closeTooltip();
+            }
+        });
+        
+        // Scales
+        const xScale = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.total_funding) * 1.05])
+            .range([margin.left, width - margin.right]);
+        
+        const yScale = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.deployment_ratio) * 1.1])
+            .range([height - margin.bottom, margin.top]);
+        
+        // Bubble size scale based on total funding amount
+        const sizeScale = d3.scaleSqrt()
+            .domain([0, d3.max(data, d => d.total_funding)])
+            .range([4, 40]);
+        
+        // Add grid
+        svg.append('g')
+            .attr('class', 'grid')
+            .attr('transform', `translate(0,${height - margin.bottom})`)
+            .call(d3.axisBottom(xScale)
+                .tickSize(-(height - margin.top - margin.bottom))
+                .tickFormat(''));
+        
+        svg.append('g')
+            .attr('class', 'grid')
+            .attr('transform', `translate(${margin.left},0)`)
+            .call(d3.axisLeft(yScale)
+                .tickSize(-(width - margin.left - margin.right))
+                .tickFormat(''));
+        
+        // X axis
+        svg.append('g')
+            .attr('transform', `translate(0,${height - margin.bottom})`)
+            .call(d3.axisBottom(xScale)
+                .tickFormat(d => d >= 1e9 ? '$' + (d/1e9).toFixed(1) + 'B' :
+                             d >= 1e6 ? '$' + (d/1e6).toFixed(0) + 'M' :
+                             '$' + (d/1e3).toFixed(0) + 'K'));
+        
+        svg.append('text')
+            .attr('class', 'axis-label')
+            .attr('x', (width + margin.left - margin.right) / 2)
+            .attr('y', height - 30)
+            .attr('text-anchor', 'middle')
+            .text('Total Category Funding');
+        
+        // Y axis
+        svg.append('g')
+            .attr('transform', `translate(${margin.left},0)`)
+            .call(d3.axisLeft(yScale)
+                .tickFormat(d => d + '%'));
+        
+        svg.append('text')
+            .attr('class', 'axis-label')
+            .attr('transform', 'rotate(-90)')
+            .attr('x', -(height - margin.bottom + margin.top) / 2)
+            .attr('y', 20)
+            .attr('text-anchor', 'middle')
+            .text('Deployment Funding Ratio (%)');
+        
+        // Mean line
+        svg.append('line')
+            .attr('x1', margin.left)
+            .attr('x2', width - margin.right)
+            .attr('y1', yScale(meanRatio))
+            .attr('y2', yScale(meanRatio))
+            .attr('stroke', '#9370DB')
+            .attr('stroke-width', 2)
+            .attr('stroke-dasharray', '5,5')
+            .attr('opacity', 0.6);
+        
+        svg.append('text')
+            .attr('x', width - margin.right - 10)
+            .attr('y', yScale(meanRatio) - 8)
+            .attr('text-anchor', 'end')
+            .attr('font-size', '11px')
+            .attr('fill', '#9370DB')
+            .text('Mean (' + meanRatio.toFixed(1) + '%)');
+        
+        // Threshold line
+        const thresholdValue = meanRatio + (anomalyThreshold * stdRatio);
+        svg.append('line')
+            .attr('x1', margin.left)
+            .attr('x2', width - margin.right)
+            .attr('y1', yScale(thresholdValue))
+            .attr('y2', yScale(thresholdValue))
+            .attr('stroke', '#ED7D31')
+            .attr('stroke-width', 2)
+            .attr('stroke-dasharray', '5,5')
+            .attr('opacity', 0.6);
+        
+        svg.append('text')
+            .attr('x', width - margin.right - 10)
+            .attr('y', yScale(thresholdValue) - 8)
+            .attr('text-anchor', 'end')
+            .attr('font-size', '11px')
+            .attr('fill', '#ED7D31')
+            .text('Anomaly Threshold (' + thresholdValue.toFixed(1) + '%');
+        
+        // Add upward arrow on right side
+        const arrowGroup = svg.append('g')
+            .attr('transform', `translate(${width - margin.right + 30}, ${height/2})`);
+        
+        // Arrow line
+        arrowGroup.append('line')
+            .attr('x1', 0)
+            .attr('y1', 100)
+            .attr('x2', 0)
+            .attr('y2', -100)
+            .attr('stroke', '#666')
+            .attr('stroke-width', 2)
+            .attr('marker-end', 'url(#arrowhead)');
+        
+        // Arrow head marker definition
+        svg.append('defs')
+            .append('marker')
+            .attr('id', 'arrowhead')
+            .attr('markerWidth', 10)
+            .attr('markerHeight', 10)
+            .attr('refX', 5)
+            .attr('refY', 3)
+            .attr('orient', 'auto')
+            .append('polygon')
+            .attr('points', '0 0, 6 3, 0 6')
+            .attr('fill', '#666');
+        
+        // Arrow label (to the right of arrow)
+        arrowGroup.append('text')
+            .attr('x', 15)
+            .attr('y', -125)
+            .attr('text-anchor', 'start')
+            .attr('font-size', '11px')
+            .attr('font-weight', '600')
+            .attr('fill', '#666')
+            .text('Likelihood of a');
+        
+        arrowGroup.append('text')
+            .attr('x', 15)
+            .attr('y', -110)
+            .attr('text-anchor', 'start')
+            .attr('font-size', '11px')
+            .attr('font-weight', '600')
+            .attr('fill', '#666')
+            .text('Technology to be');
+        
+        arrowGroup.append('text')
+            .attr('x', 15)
+            .attr('y', -95)
+            .attr('text-anchor', 'start')
+            .attr('font-size', '11px')
+            .attr('font-weight', '600')
+            .attr('fill', '#666')
+            .text('De-risked');
+        
+        // Draw bubbles
+        svg.selectAll('.bubble')
+            .data(data)
+            .enter()
+            .append('circle')
+            .attr('class', d => {
+                if (d.is_anomaly) return 'bubble anomaly';
+                if (d.deployment_ratio > meanRatio) return 'bubble above-mean';
+                return 'bubble normal';
+            })
+            .attr('cx', d => xScale(d.total_funding))
+            .attr('cy', d => yScale(d.deployment_ratio))
+            .attr('r', d => sizeScale(d.total_funding))
+            .on('mouseover', function(event, d) {
+                if (!tooltipPinned) {
+                    d3.select(this).style('opacity', 1);
+                    
+                    let html = '<button class="tooltip-close" onclick="closeTooltip()">×</button>';
+                    html += '<strong>' + d.category.replace(/_/g, ' ') + '</strong><br><br>';
+                    html += 'Total funding: $' + (d.total_funding >= 1e9 ? (d.total_funding/1e9).toFixed(2) + 'B' : (d.total_funding/1e6).toFixed(1) + 'M');
+                    html += ' (' + d.total_grants + ' grants)<br>';
+                    html += 'Deployment funding: $' + (d.deployment_funding >= 1e6 ? (d.deployment_funding/1e6).toFixed(1) + 'M' : (d.deployment_funding/1e3).toFixed(1) + 'K');
+                    html += ' (' + d.deployment_grants + ' grants)<br>';
+                    html += '<strong>Deployment ratio: ' + d.deployment_ratio.toFixed(1) + '%</strong><br>';
+                    html += 'Z-score: ' + d.z_score.toFixed(2);
+                    
+                    if (d.is_anomaly) {
+                        html += '<br><br><span style="color: #FFA500;">⚠️ ANOMALY: Abnormally high deployment funding</span>';
+                    }
+                    
+                    // Add technology context blurb for top 3 de-risked categories
+                    if (techBlurbs[d.category]) {
+                        html += '<br><br><div style="border-top: 1px solid #666; padding-top: 8px; margin-top: 8px;">';
+                        html += '<strong style="color: #FFA500;">WHY IS THIS DE-RISKED?</strong><br>';
+                        html += '<span style="font-size: 12px; line-height: 1.4;">' + techBlurbs[d.category].blurb + '</span>';
+                        html += '</div>';
+                    }
+                    
+                    html += '<br><br><span style="font-size: 11px; color: #999; font-style: italic;">Click to pin tooltip</span>';
+                    
+                    tooltip.html(html)
+                        .style('opacity', 1)
+                        .style('left', (event.pageX + 10) + 'px')
+                        .style('top', (event.pageY - 10) + 'px');
+                }
+            })
+            .on('mouseout', function(event, d) {
+                if (!tooltipPinned) {
+                    const opacity = d.is_anomaly ? 0.8 : (d.deployment_ratio > meanRatio ? 0.7 : 0.6);
+                    d3.select(this).style('opacity', opacity);
+                    tooltip.style('opacity', 0);
+                }
+            })
+            .on('click', function(event, d) {
+                event.stopPropagation();
+                tooltipPinned = !tooltipPinned;
+                
+                if (tooltipPinned) {
+                    d3.select(this).style('opacity', 1);
+                    
+                    let html = '<button class="tooltip-close" onclick="closeTooltip()">×</button>';
+                    html += '<strong>' + d.category.replace(/_/g, ' ') + '</strong><br><br>';
+                    html += 'Total funding: $' + (d.total_funding >= 1e9 ? (d.total_funding/1e9).toFixed(2) + 'B' : (d.total_funding/1e6).toFixed(1) + 'M');
+                    html += ' (' + d.total_grants + ' grants)<br>';
+                    html += 'Deployment funding: $' + (d.deployment_funding >= 1e6 ? (d.deployment_funding/1e6).toFixed(1) + 'M' : (d.deployment_funding/1e3).toFixed(1) + 'K');
+                    html += ' (' + d.deployment_grants + ' grants)<br>';
+                    html += '<strong>Deployment ratio: ' + d.deployment_ratio.toFixed(1) + '%</strong><br>';
+                    html += 'Z-score: ' + d.z_score.toFixed(2);
+                    
+                    if (d.is_anomaly) {
+                        html += '<br><br><span style="color: #FFA500;">⚠️ ANOMALY: Abnormally high deployment funding</span>';
+                    }
+                    
+                    // Add technology context blurb for top 3 de-risked categories
+                    if (techBlurbs[d.category]) {
+                        html += '<br><br><div style="border-top: 1px solid #666; padding-top: 8px; margin-top: 8px;">';
+                        html += '<strong style="color: #FFA500;">WHY IS THIS DE-RISKED?</strong><br>';
+                        html += '<span style="font-size: 12px; line-height: 1.4;">' + techBlurbs[d.category].blurb + '</span>';
+                        html += '</div>';
+                    }
+                    
+                    html += '<br><br><span style="font-size: 11px; color: #999; font-style: italic;">Click outside to close</span>';
+                    
+                    tooltip.html(html)
+                        .style('opacity', 1)
+                        .style('left', (event.pageX + 10) + 'px')
+                        .style('top', (event.pageY - 10) + 'px');
+                } else {
+                    window.closeTooltip();
+                }
+            });
+        
+        // Add labels for bubbles above the mean line + pollution degradation
+        const labeledData = data.filter(d => d.deployment_ratio > meanRatio || d.category === 'pollution_degradation_remediation');
+        
+        svg.selectAll('.bubble-label')
+            .data(labeledData)
+            .enter()
+            .append('text')
+            .attr('class', 'bubble-label')
+            .attr('x', d => {
+                const bubbleX = xScale(d.total_funding);
+                const radius = sizeScale(d.total_funding);
+                
+                // Place very high deployment ratios (>60%) above the bubble
+                if (d.deployment_ratio > 60) {
+                    return bubbleX;
+                }
+                // Place high deployment ratios (40-60%) above-right
+                else if (d.deployment_ratio > 40) {
+                    return bubbleX + radius * 0.7;
+                }
+                // Place moderate (20-40%) to the right
+                else {
+                    return bubbleX + radius + 8;
+                }
+            })
+            .attr('y', d => {
+                const bubbleY = yScale(d.deployment_ratio);
+                const radius = sizeScale(d.total_funding);
+                
+                // Place very high and high deployment ratios above
+                if (d.deployment_ratio > 40) {
+                    return bubbleY - radius - 8;
+                }
+                // Place moderate to the right (same vertical level)
+                else {
+                    return bubbleY;
+                }
+            })
+            .attr('text-anchor', d => d.deployment_ratio > 40 ? 'middle' : 'start')
+            .attr('dominant-baseline', d => d.deployment_ratio > 40 ? 'baseline' : 'middle')
+            .attr('font-size', '11px')
+            .attr('font-weight', '600')
+            .attr('fill', '#333')
+            .attr('pointer-events', 'none')
+            .text(d => {
+                // Format category name for display - shortened
+                const name = d.category.replace(/_/g, ' ');
+                
+                // Create abbreviations for long names
+                if (name === 'platform biochemicals') return 'Platform Biochemicals';
+                if (name === 'biogas gaseous energy') return 'Biogas';
+                if (name === 'biological carbon capture') return 'Bio Carbon Capture';
+                if (name === 'other climate biotech') return 'Other Climate';
+                if (name === 'pollution degradation remediation') return 'Pollution Remediation';
+                if (name === 'liquid transportation fuels') return 'Liquid Fuels';
+                if (name === 'biopolymers materials') return 'Biopolymers';
+                if (name === 'specialty bioproducts') return 'Specialty Products';
+                if (name === 'wastewater nutrient recovery') return 'Wastewater Recovery';
+                if (name === 'biomining resource recovery') return 'Biomining';
+                if (name === 'crop productivity traditional') return 'Crop Productivity';
+                if (name === 'soil microbiome n fixation') return 'Soil Microbiome';
+                if (name === 'marine aquatic biotech') return 'Marine Biotech';
+                if (name === 'ecosystem monitoring') return 'Monitoring';
+                if (name === 'methane removal oxidation') return 'Methane Removal';
+                if (name === 'bio mineral weathering') return 'Mineral Weathering';
+                if (name === 'research infrastructure') return 'Infrastructure';
+                
+                // Capitalize
+                return name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            });
+        
+        // Legend (horizontal layout at top)
+        const legend = svg.append('g')
+            .attr('class', 'legend')
+            .attr('transform', `translate(${margin.left}, 10)`);
+        
+        legend.append('text')
+            .attr('x', 0)
+            .attr('y', 0)
+            .attr('font-weight', 'bold')
+            .attr('font-size', '13px')
+            .text('Category Type:');
+        
+        // De-risked
+        legend.append('circle')
+            .attr('cx', 120)
+            .attr('cy', -3)
+            .attr('r', 6)
+            .attr('class', 'bubble anomaly');
+        
+        legend.append('text')
+            .attr('x', 130)
+            .attr('y', 0)
+            .attr('font-size', '12px')
+            .text('De-risked');
+        
+        // Mostly De-risked
+        legend.append('circle')
+            .attr('cx', 220)
+            .attr('cy', -3)
+            .attr('r', 6)
+            .attr('class', 'bubble above-mean');
+        
+        legend.append('text')
+            .attr('x', 230)
+            .attr('y', 0)
+            .attr('font-size', '12px')
+            .text('Semi De-risked');
+        
+        // Not De-risked
+        legend.append('circle')
+            .attr('cx', 360)
+            .attr('cy', -3)
+            .attr('r', 6)
+            .attr('class', 'bubble normal');
+        
+        legend.append('text')
+            .attr('x', 370)
+            .attr('y', 0)
+            .attr('font-size', '12px')
+            .text('Not De-risked');
+        
+        // Bubble size explanation
+        legend.append('text')
+            .attr('x', 500)
+            .attr('y', 0)
+            .attr('font-weight', 'bold')
+            .attr('font-size', '13px')
+            .text('Bubble Size = Total Funding');
+        
+        // Print anomalies to console
+        const anomalies = data.filter(d => d.is_anomaly);
+        console.log('De-risked categories (anomalies):');
+        anomalies.forEach(d => {
+            console.log(`  ${d.category}: ${d.deployment_ratio.toFixed(1)}% deployment ratio (Z-score: ${d.z_score.toFixed(2)})`);
+        });
+    </script>
+</body>
+</html>
