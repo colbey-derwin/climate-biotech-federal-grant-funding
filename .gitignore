@@ -16,3 +16,10 @@ __pycache__/
 # Keep Excel validation files (they're templates!)
 !*.xlsx
 .git.backup
+
+# Personal workflow files — live only on your machine, not in GitHub.
+# Paths inside these are hard-coded to colbey-derwin's Desktop, so they shouldn't
+# be committed anywhere shared.
+sync_to_sarah.sh
+WORKFLOW.md
+.claude/

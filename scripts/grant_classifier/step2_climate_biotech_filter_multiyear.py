@@ -3,7 +3,7 @@
 """
 climate_biotech_filter_multiyear.py
 
-MULTI-YEAR VERSION: Processes merged_all_years.csv (2019-2025)
+MULTI-YEAR VERSION: Processes merged_all_years.csv (2016-2025)
 LOGIC IS IDENTICAL to single-year version - only paths changed
 
 EXPANDED DEFINITION (2025):
