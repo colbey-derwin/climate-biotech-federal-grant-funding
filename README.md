@@ -1,7 +1,8 @@
 # Climate Biotech Federal Grant Analysis Pipeline
 
-**Output**: engineeredresilience.org/climate-biotech-funding  
-**GitHub**: [link to repository]
+**Output (dataset)**: `scripts/grant_classifier/output/stage2_characterized_all_years_with_industry_framing.csv`
+**Output (exploratory plots)**: `visualization/*.html`
+**GitHub**: https://github.com/colbey-derwin/climate-biotech-federal-grant-funding
 
 **Goal**: Identify and characterize federal funding for climate biotechnology research across all agencies (NSF, DOE, DOD, USDA, EPA, etc.) from 2019-2025. Show how much funding goes to different research stages, application areas, and whether research considers commercial viability.
 
