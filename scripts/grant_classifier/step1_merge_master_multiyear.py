@@ -34,7 +34,7 @@ OUTPUT_DIR = PROJECT_ROOT / "scripts" / "grant_classifier" / "output"
 OUTPUT_FILE = OUTPUT_DIR / "merged_all_years.csv"
 
 # Years to process
-YEARS = [2019, 2020, 2021, 2022, 2023, 2024, 2025]
+YEARS = [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
 
 # Create output directory if needed
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
