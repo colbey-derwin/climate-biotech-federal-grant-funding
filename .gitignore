@@ -23,3 +23,7 @@ __pycache__/
 sync_to_sarah.sh
 WORKFLOW.md
 .claude/
+
+# Local-only scripts (retries, one-off diagnostics, ad-hoc work).
+# Not committed to personal repo, not synced to Sarah's workflow repo.
+local/

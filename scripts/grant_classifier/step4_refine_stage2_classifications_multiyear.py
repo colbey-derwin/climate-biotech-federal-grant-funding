@@ -104,7 +104,7 @@ OUT_LOG = OUTPUT_DIR / "refinement_log.json"
 # SETTINGS
 # =============================================================================
 # TEST MODE TOGGLE - Set to True to test with validation grants only
-TEST_MODE = True  # Set to False for production mode (updates main file)
+TEST_MODE = False  # Set to False for production mode (updates main file)
 
 # MODEL SELECTION
 # Options: "claude-sonnet-4-6" (recommended, latest), "claude-opus-4-6" (most accurate, expensive)

@@ -24,8 +24,8 @@ from pathlib import Path
 # PATHS
 # =============================================================================
 
-SCRIPT_DIR = Path(__file__).resolve().parent  # scripts/
-PROJECT_ROOT = SCRIPT_DIR.parent              # climate_biotech_federal_grant_funding/
+SCRIPT_DIR = Path(__file__).resolve().parent  # scripts/grant_classifier/
+PROJECT_ROOT = SCRIPT_DIR.parent.parent       # climate_biotech_federal_grant_funding/
 
 OUTPUT_DIR = PROJECT_ROOT / "scripts" / "grant_classifier" / "output"
 

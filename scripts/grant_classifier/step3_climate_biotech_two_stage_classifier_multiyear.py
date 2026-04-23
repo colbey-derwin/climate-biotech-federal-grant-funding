@@ -131,7 +131,7 @@ MAX_RETRIES = 4
 RESUME = True  # skip already-classified rows
 
 # Test mode: run small sample first
-TEST_MODE = True
+TEST_MODE = False
 TEST_SAMPLE_SIZE = 50
 
 # Validation grant IDs - these are the specific 50 grants from the validation Excel file
