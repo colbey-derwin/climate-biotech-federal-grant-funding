@@ -110,6 +110,17 @@ OUT_STAGE1_REVIEW = OUTPUT_DIR / "stage1_review_all_years.csv"
 OUT_STAGE2_CHAR = OUTPUT_DIR / "stage2_characterized_all_years.csv"
 OUT_STAGE2_REVIEW = OUTPUT_DIR / "stage2_review_all_years.csv"
 
+# Stage 1 on pools the main flow previously skipped — short-abstract & formula.
+# Ports biomining's Stage 2-Short / Stage 2-Formula pattern, but runs only
+# Stage 1 KEEP/REMOVE on each pool (no Stage 2 characterization — abstracts
+# are too short / the grant is non-competitive, so full axis-assignment isn't
+# meaningful). See run_stage1_excluded_pools() at the bottom of this file.
+INSUFFICIENT_CSV = OUTPUT_DIR / "climate_biotech_insufficient_abstract_all_years.csv"
+MERGED_CSV = OUTPUT_DIR / "merged_all_years.csv"
+EXCLUDED_CSV = OUTPUT_DIR / "climate_biotech_excluded_all_years.csv"
+OUT_STAGE1_SHORT = OUTPUT_DIR / "stage1_shortabstract_all_years.csv"
+OUT_STAGE1_FORMULA = OUTPUT_DIR / "stage1_formula_all_years.csv"
+
 # Log
 OUT_LOG = OUTPUT_DIR / "two_stage_classification_log_all_years.json"
 
@@ -1145,5 +1156,88 @@ def main():
     print("="*70)
 
 
+def run_stage1_excluded_pools():
+    """
+    Run Stage 1 KEEP/REMOVE on two pools the main flow skips:
+      (1) climate_biotech_insufficient_abstract_all_years.csv  (short abstracts)
+      (2) formula grants — reconstructed from merged − excluded set-difference.
+
+    Mirrors biomining's Stage 2-Short / Stage 2-Formula pattern. ONLY runs
+    Stage 1 (KEEP/REMOVE) — no Stage 2 characterization — because short-
+    abstract and formula grants lack the context for reliable 6-axis tagging.
+
+    Writes two NEW CSVs (stage1_shortabstract_all_years.csv and
+    stage1_formula_all_years.csv). Does NOT alter the main Stage 1 / Stage 2
+    outputs. Skips each pool if its output file already exists.
+    """
+    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+
+    def _apply(df_in, label, out_path):
+        if out_path.exists():
+            print(f"✓ {out_path.name} exists — skipping (delete to re-run)")
+            return
+        if df_in is None or len(df_in) == 0:
+            print(f"⚠️  {label}: 0 rows to classify — skipping")
+            return
+        batches = [df_in.iloc[i:i + STAGE1_BATCH_SIZE].to_dict("records")
+                   for i in range(0, len(df_in), STAGE1_BATCH_SIZE)]
+        print(f"\n{label}: {len(df_in):,} grants / {len(batches)} batches")
+        decisions = {}
+        for i, batch in enumerate(batches, 1):
+            results, _ = classify_stage1_batch(client, batch)
+            for r in results:
+                decisions[str(r.get("grant_id", "")).strip()] = r
+            if i % 10 == 0 or i == len(batches):
+                print(f"  batch {i}/{len(batches)}")
+        df_out = df_in.copy()
+        for col in ("s1_decision", "s1_confidence", "s1_reasoning"):
+            df_out[col] = None
+        for idx, row in df_out.iterrows():
+            gid = str(row.get("unique_key", "")).strip()
+            if gid in decisions:
+                r = decisions[gid]
+                df_out.at[idx, "s1_decision"] = r.get("decision")
+                df_out.at[idx, "s1_confidence"] = r.get("confidence")
+                df_out.at[idx, "s1_reasoning"] = r.get("reasoning")
+        df_out.to_csv(out_path, index=False)
+        print(f"✓ Wrote {out_path}")
+        print(f"  KEEP:   {(df_out['s1_decision'] == 'KEEP').sum():,}")
+        print(f"  REMOVE: {(df_out['s1_decision'] == 'REMOVE').sum():,}")
+
+    # Pool 1: short-abstract (keyword-matched, < 150 char abstract)
+    if INSUFFICIENT_CSV.exists():
+        df_short = pd.read_csv(INSUFFICIENT_CSV, low_memory=False)
+        _apply(df_short, "Non-Categorizable (short abstract)", OUT_STAGE1_SHORT)
+    else:
+        print(f"⚠️  {INSUFFICIENT_CSV.name} not found — skipping short-abstract pool")
+
+    # Pool 2: formula grants (keyword-matched, FORMULA GRANT — reconstructed
+    # via set-difference since step2 drops them from kept_final without saving).
+    if EXCLUDED_CSV.exists() and MERGED_CSV.exists():
+        excluded_keys = set()
+        for chunk in pd.read_csv(EXCLUDED_CSV, chunksize=200_000, low_memory=False,
+                                 usecols=["unique_key", "award_type"]):
+            m = chunk["award_type"].fillna("").astype(str).str.startswith("FORMULA GRANT")
+            excluded_keys.update(chunk.loc[m, "unique_key"].astype(str).tolist())
+        missing_rows = []
+        for chunk in pd.read_csv(MERGED_CSV, chunksize=200_000, low_memory=False):
+            m = chunk["award_type"].fillna("").astype(str).str.startswith("FORMULA GRANT")
+            sub = chunk.loc[m].copy()
+            if sub.empty:
+                continue
+            sub["unique_key"] = sub["unique_key"].astype(str)
+            miss = sub[~sub["unique_key"].isin(excluded_keys)]
+            if len(miss):
+                missing_rows.append(miss)
+        df_formula = pd.concat(missing_rows, ignore_index=True) if missing_rows else None
+        _apply(df_formula, "Climate Biotech Formula (reconstructed)", OUT_STAGE1_FORMULA)
+    else:
+        print(f"⚠️  merged_all_years.csv or climate_biotech_excluded_all_years.csv not found — skipping formula pool")
+
+
 if __name__ == "__main__":
     main()
+    # Extension: also Stage-1-classify the two previously-skipped pools so the
+    # viz can show LLM-confirmed KEEP/REMOVE counts on Non-Categorizable +
+    # Formula branches (ported from biomining's Stage 2-Short / Stage 2-Formula).
+    run_stage1_excluded_pools()

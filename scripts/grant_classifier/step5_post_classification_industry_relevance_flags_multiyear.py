@@ -1,29 +1,42 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-add_industry_framing.py
+step5_post_classification_industry_relevance_flags_multiyear.py
 
-POST-PROCESSING SCRIPT: Add industry_framing column to Stage 2 classified data
+POST-PROCESSING: add two keyword-based flag columns to the Stage 2 classified
+climate biotech dataset. Structure and keyword lists are intentionally
+identical to the biomining pipeline's `add_keyword_flags_multiyear.py` so the
+two analyses share methodology.
 
-Flags public_facing research grants that include industry/commercial viability
-analysis (TEA, LCA, etc.) in their abstracts.
+Runs AFTER step3_..._two_stage_classifier_multiyear.py (and optional step4).
 
-Input:  stage2_characterized_all_years.csv
-Output: stage2_characterized_all_years_with_industry_framing.csv
+Input:  scripts/grant_classifier/output/stage2_characterized_all_years.csv
+Output: scripts/grant_classifier/output/stage2_characterized_all_years_with_industry_framing.csv
+        (same filename as before — downstream scripts don't need to change)
 
-Runtime: ~2 minutes
+Produces two new boolean columns:
+  1. industry_framing     — TEA, LCA, commercial viability, cost/market language
+  2. open_access_sharing  — open-access, data-sharing, shared-facility language
+
+No grant-type- or orientation-aware overrides: both flags are pure
+word-boundary keyword matches against the grant abstract. That matches
+the biomining methodology. (Earlier climate biotech versions of this step
+had type-aware logic for industry_framing — removed for parity with
+biomining so that cross-analysis comparisons are apples-to-apples.)
+
+Runtime: ~1–2 minutes on the full dataset (no LLM calls).
 """
 
-import os
 import re
-import pandas as pd
-from typing import List
 from pathlib import Path
+from typing import List
+
+import pandas as pd
+
 
 # =============================================================================
 # PATHS
 # =============================================================================
-
 SCRIPT_DIR = Path(__file__).resolve().parent  # scripts/grant_classifier/
 PROJECT_ROOT = SCRIPT_DIR.parent.parent       # climate_biotech_federal_grant_funding/
 
@@ -32,34 +45,36 @@ OUTPUT_DIR = PROJECT_ROOT / "scripts" / "grant_classifier" / "output"
 INFILE = OUTPUT_DIR / "stage2_characterized_all_years.csv"
 OUTFILE = OUTPUT_DIR / "stage2_characterized_all_years_with_industry_framing.csv"
 
+
 # =============================================================================
-# INDUSTRY FRAMING KEYWORDS - APPROVED LIST
+# KEYWORD LISTS — identical to biomining pipeline's add_keyword_flags_multiyear.py
 # =============================================================================
-# EXACTLY as specified - 18 keywords total
-INDUSTRY_KEYWORDS = [
+
+# INDUSTRY FRAMING — 17 keywords
+INDUSTRY_KEYWORDS: List[str] = [
     # Techno-economic analysis
     "techno-economic analysis",
     "technoeconomic",
     "TEA",
-    
+
     # Life cycle assessment
     "life cycle assessment",
-    "lifecycle assessment", 
+    "lifecycle assessment",
     "LCA",
-    
+
     # Economic viability
     "economic feasibility",
     "economic viability",
-    
+
     # Commercial viability
     "commercial feasibility",
     "commercial viability",
     "commercialization pathway",
-    
+
     # Cost analysis
     "cost analysis",
     "cost-benefit analysis",
-    
+
     # Scalability & market
     "scalability analysis",
     "scale-up economics",
@@ -67,232 +82,183 @@ INDUSTRY_KEYWORDS = [
     "market potential",
 ]
 
-# =============================================================================
-# HELPER FUNCTIONS
-# =============================================================================
+# OPEN ACCESS / SHARING — 29 keywords
+SHARING_KEYWORDS: List[str] = [
+    # Open access
+    "open access",
+    "open-access",
+    "openly available",
+    "publicly available",
+    "public access",
+    "free access",
 
-def normalize_text(text: str) -> str:
-    """Normalize text for keyword matching."""
+    # Shared resources
+    "shared facility",
+    "shared platform",
+    "shared resource",
+    "shared database",
+    "shared infrastructure",
+    "community resource",
+    "community facility",
+    "community platform",
+
+    # Data sharing
+    "data sharing",
+    "data repository",
+    "open data",
+    "open source",
+    "open-source",
+
+    # Availability language
+    "available to researchers",
+    "available to the community",
+    "available to the public",
+    "made available",
+    "will be shared",
+    "will be made available",
+
+    # Collaborative access
+    "collaborative facility",
+    "multi-user facility",
+    "user facility",
+    "shared access",
+]
+
+
+# =============================================================================
+# HELPERS
+# =============================================================================
+def normalize_text(text) -> str:
+    """Lowercase, collapse whitespace. NaN → empty string."""
     if pd.isna(text):
         return ""
-    # Convert to lowercase, collapse whitespace
     text = str(text).lower()
-    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r"\s+", " ", text)
     return text
 
-def has_industry_keyword(abstract: str, keywords: List[str]) -> bool:
-    """
-    Check if abstract contains any industry framing keyword.
-    Case-insensitive matching with word boundaries.
-    """
+
+def has_keyword(abstract, keywords: List[str]) -> bool:
+    """Case-insensitive word-boundary match for any keyword in list."""
     if pd.isna(abstract):
         return False
-    
     normalized = normalize_text(abstract)
-    
     for keyword in keywords:
-        normalized_keyword = normalize_text(keyword)
-        
-        # Use word boundaries to prevent matching within words
-        # \b matches word boundaries (transition between \w and \W)
-        pattern = r'\b' + re.escape(normalized_keyword) + r'\b'
-        
+        norm_kw = normalize_text(keyword)
+        pattern = r"\b" + re.escape(norm_kw) + r"\b"
         if re.search(pattern, normalized):
             return True
-    
     return False
 
-def assign_industry_framing(row: pd.Series, keywords: List[str]) -> bool:
-    """
-    Assign industry_framing flag based on grant type, orientation, and keywords.
-    
-    Logic (UPDATED - FORCE 100%):
-    - Deployment: ALWAYS True (inherently industry/commercial work)
-    - Industry-facing research: ALWAYS True (inherently industry-oriented)
-    - Public-facing research: Check abstract for keywords → True/False
-    - Infrastructure: Check abstract for keywords → True/False
-    - Other: Return None (not applicable)
-    """
-    grant_type = row.get('s2_grant_type', None)
-    orientation = row.get('s2_orientation', None)
-    abstract = row.get('abstract', '')
-    
-    # FORCE: Deployment is ALWAYS industry-informed (it's deploying technology!)
-    if grant_type == 'deployment':
-        return True
-    
-    # FORCE: Industry-facing research is ALWAYS industry-informed (that's what industry-facing means!)
-    elif grant_type == 'research' and orientation == 'industry_facing':
-        return True
-    
-    # Apply keyword matching to public-facing research
-    elif grant_type == 'research' and orientation == 'public_facing':
-        return has_industry_keyword(abstract, keywords)
-    
-    # Apply keyword matching to infrastructure
-    elif grant_type == 'infrastructure':
-        return has_industry_keyword(abstract, keywords)
-    
-    # Not applicable to other grant types
-    else:
-        return None
+
+def find_matching_keywords(abstract, keywords: List[str]) -> List[str]:
+    """Return list of keywords from `keywords` that appear in `abstract`."""
+    if pd.isna(abstract):
+        return []
+    normalized = normalize_text(abstract)
+    matched = []
+    for keyword in keywords:
+        norm_kw = normalize_text(keyword)
+        pattern = r"\b" + re.escape(norm_kw) + r"\b"
+        if re.search(pattern, normalized):
+            matched.append(keyword)
+    return matched
+
 
 # =============================================================================
-# MAIN PROCESSING
+# MAIN
 # =============================================================================
-
 def main():
-    print("="*80)
-    print("ADD INDUSTRY FRAMING TO STAGE 2 DATA")
-    print("="*80)
+    print("=" * 80)
+    print("STEP 5 — KEYWORD FLAGS (industry_framing + open_access_sharing)")
+    print("=" * 80)
     print()
-    
-    # Load data
+
+    if not INFILE.exists():
+        print(f"❌ Input not found: {INFILE}")
+        print("   Run step3_climate_biotech_two_stage_classifier_multiyear.py first.")
+        return
+
     print(f"Loading: {INFILE}")
     df = pd.read_csv(INFILE, low_memory=False)
-    print(f"✓ Loaded {len(df):,} grants")
+    print(f"✓ Loaded {len(df):,} rows")
     print()
-    
-    # Check required columns
-    required_cols = ['s2_grant_type', 's2_orientation', 'abstract']
-    missing = [col for col in required_cols if col not in df.columns]
+
+    required = ["abstract"]
+    missing = [c for c in required if c not in df.columns]
     if missing:
-        print(f"❌ ERROR: Missing required columns: {missing}")
+        print(f"❌ Missing required column(s): {missing}")
         return
-    
-    # Display keyword list
-    print("Industry Framing Keywords (18 total):")
-    print("-"*80)
-    for i, keyword in enumerate(INDUSTRY_KEYWORDS, 1):
-        print(f"  {i:2d}. {keyword}")
+
+    # ---- Keyword lists ----
+    print("Keyword lists:")
+    print(f"  Industry framing:     {len(INDUSTRY_KEYWORDS)} keywords")
+    print(f"  Open access / sharing: {len(SHARING_KEYWORDS)} keywords")
     print()
-    
-    # Count target population
-    research_grants = df[df['s2_grant_type'] == 'research']
-    public_research = research_grants[research_grants['s2_orientation'] == 'public_facing']
-    industry_research = research_grants[research_grants['s2_orientation'] == 'industry_facing']
-    infrastructure_grants = df[df['s2_grant_type'] == 'infrastructure']
-    deployment_grants = df[df['s2_grant_type'] == 'deployment']
-    
-    total_applicable = len(public_research) + len(industry_research) + len(infrastructure_grants) + len(deployment_grants)
-    
-    print("Target Population:")
-    print(f"  Total grants:              {len(df):,}")
-    print(f"  Public-facing research:    {len(public_research):,}")
-    print(f"  Industry-facing research:  {len(industry_research):,}")
-    print(f"  Infrastructure:            {len(infrastructure_grants):,}")
-    print(f"  Deployment:                {len(deployment_grants):,}")
-    print(f"  ───────────────────────────────────")
-    print(f"  Total applicable:          {total_applicable:,}")
-    print()
-    
-    # Apply industry framing logic
-    print("Processing grants...")
-    df['industry_framing'] = df.apply(
-        lambda row: assign_industry_framing(row, INDUSTRY_KEYWORDS), 
-        axis=1
+
+    # ---- Apply flags ----
+    print("Scanning abstracts...")
+    df["industry_framing"] = df["abstract"].apply(
+        lambda x: has_keyword(x, INDUSTRY_KEYWORDS)
     )
-    
-    # Summary statistics
+    industry_count = int(df["industry_framing"].sum())
+    print(f"  ✓ industry_framing:     {industry_count:,} / {len(df):,} "
+          f"({industry_count / len(df) * 100:.1f}%)")
+
+    df["open_access_sharing"] = df["abstract"].apply(
+        lambda x: has_keyword(x, SHARING_KEYWORDS)
+    )
+    sharing_count = int(df["open_access_sharing"].sum())
+    print(f"  ✓ open_access_sharing:  {sharing_count:,} / {len(df):,} "
+          f"({sharing_count / len(df) * 100:.1f}%)")
     print()
-    print("="*80)
-    print("RESULTS")
-    print("="*80)
-    print()
-    
-    # Count by category
-    flagged = df[df['industry_framing'] == True]
-    not_flagged = df[df['industry_framing'] == False]
-    not_applicable = df[df['industry_framing'].isna()]
-    
-    print(f"Industry Framing = True:  {len(flagged):,} grants")
-    print(f"Industry Framing = False: {len(not_flagged):,} grants")
-    print(f"Not Applicable (null):    {len(not_applicable):,} grants")
-    print()
-    
-    # Percentage of applicable grants with industry framing
-    if total_applicable > 0:
-        pct_with_framing = (len(flagged) / total_applicable) * 100
-        print(f"% of Applicable Grants with Industry Framing: {pct_with_framing:.1f}%")
+
+    # ---- Breakdown by grant type (if available) ----
+    if "s2_grant_type" in df.columns:
+        print("Flag rates by grant type:")
+        print(f"  {'Grant Type':<20}{'n':>8}{'industry':>12}{'open-access':>14}")
+        print(f"  {'-' * 54}")
+        for gt in sorted(df["s2_grant_type"].dropna().unique()):
+            subset = df[df["s2_grant_type"] == gt]
+            n = len(subset)
+            ind = int(subset["industry_framing"].sum())
+            shr = int(subset["open_access_sharing"].sum())
+            print(f"  {str(gt):<20}{n:>8,}"
+                  f"{ind:>8,} ({ind / n * 100:>3.0f}%)"
+                  f"{shr:>10,} ({shr / n * 100:>3.0f}%)")
         print()
-    
-    # Breakdown by grant type (if available)
-    if len(flagged) > 0:
-        print("Breakdown by Grant Type:")
-        print("-"*80)
-        
-        # Use df instead of public_research since df has the industry_framing column
-        for grant_type in ['research', 'infrastructure', 'deployment', 'other']:
-            type_grants = df[df['s2_grant_type'] == grant_type]
-            if len(type_grants) > 0:
-                type_flagged = type_grants[type_grants['industry_framing'] == True]
-                if len(type_flagged) > 0:
-                    pct = (len(type_flagged) / len(type_grants)) * 100
-                    print(f"  {grant_type:20s}: {len(type_flagged):4d}/{len(type_grants):4d} ({pct:5.1f}%)")
-        print()
-        
-        # For research, break down by orientation
-        research_flagged = df[(df['s2_grant_type'] == 'research') & (df['industry_framing'] == True)]
-        if len(research_flagged) > 0:
-            print("Research Breakdown by Orientation:")
-            print("-"*80)
-            
-            public_flagged = research_flagged[research_flagged['s2_orientation'] == 'public_facing']
-            industry_flagged = research_flagged[research_flagged['s2_orientation'] == 'industry_facing']
-            
-            if len(public_flagged) > 0:
-                pct = (len(public_flagged) / len(public_research)) * 100 if len(public_research) > 0 else 0
-                print(f"  Public-facing:   {len(public_flagged):4d}/{len(public_research):4d} ({pct:5.1f}%)")
-            
-            if len(industry_flagged) > 0:
-                pct = (len(industry_flagged) / len(industry_research)) * 100 if len(industry_research) > 0 else 0
-                print(f"  Industry-facing: {len(industry_flagged):4d}/{len(industry_research):4d} ({pct:5.1f}%)")
-            print()
-    
-    # Show example flagged grants
-    if len(flagged) > 0:
-        print("Example Flagged Grants (first 3):")
-        print("-"*80)
-        for idx, row in flagged.head(3).iterrows():
-            print(f"Title: {row.get('title', 'N/A')[:100]}")
-            print(f"Stage: {row.get('s2_research_stage', 'N/A')}")
-            
-            # Find which keyword(s) matched
-            abstract = normalize_text(row.get('abstract', ''))
-            matched = []
-            for keyword in INDUSTRY_KEYWORDS:
-                if normalize_text(keyword) in abstract:
-                    matched.append(keyword)
-            print(f"Keywords: {', '.join(matched[:3])}")  # Show first 3 matches
-            print()
-    
-    # Save output
-    print("="*80)
-    print("SAVING OUTPUT")
-    print("="*80)
+
+    # ---- Verification sample ----
+    print("Verification — one flagged grant per category:")
+    ind_flagged = df[df["industry_framing"]]
+    if len(ind_flagged) > 0:
+        sample = ind_flagged.iloc[0]
+        matched = find_matching_keywords(sample.get("abstract"), INDUSTRY_KEYWORDS)
+        title = str(sample.get("title", "(no title)"))[:80]
+        print(f"  industry_framing:")
+        print(f"    Title:    {title}")
+        print(f"    Matched:  {matched[:3]}")
+
+    shr_flagged = df[df["open_access_sharing"]]
+    if len(shr_flagged) > 0:
+        sample = shr_flagged.iloc[0]
+        matched = find_matching_keywords(sample.get("abstract"), SHARING_KEYWORDS)
+        title = str(sample.get("title", "(no title)"))[:80]
+        print(f"  open_access_sharing:")
+        print(f"    Title:    {title}")
+        print(f"    Matched:  {matched[:3]}")
     print()
-    
+
+    # ---- Save ----
+    OUTFILE.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(OUTFILE, index=False)
-    print(f"✓ Saved: {OUTFILE}")
-    print(f"  Total rows: {len(df):,}")
-    print(f"  New column: industry_framing (bool/null)")
+    print(f"✓ Saved: {OUTFILE.name}")
+    print(f"  Rows: {len(df):,}")
+    print(f"  New columns: industry_framing (bool), open_access_sharing (bool)")
     print()
-    
-    # Verification
-    print("Verification:")
-    print(f"  Original file:  {len(pd.read_csv(INFILE)):,} rows")
-    print(f"  New file:       {len(df):,} rows")
-    print(f"  Match:          {'✓ YES' if len(pd.read_csv(INFILE)) == len(df) else '❌ NO'}")
-    print()
-    
-    print("="*80)
-    print("COMPLETE")
-    print("="*80)
-    print()
-    print("Next steps:")
-    print("  1. Review the flagged grants to verify keyword matching is working")
-    print("  2. Use this file for visualization: stage2_characterized_all_years_with_industry_framing.csv")
-    print()
+    print("=" * 80)
+    print("DONE")
+    print("=" * 80)
+
 
 if __name__ == "__main__":
     main()
