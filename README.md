@@ -4,9 +4,9 @@
 **Output (exploratory plots)**: `visualization/*.html`
 **GitHub**: https://github.com/colbey-derwin/climate-biotech-federal-grant-funding
 
-**Goal**: Identify and characterize federal funding for climate biotechnology research across all agencies (NSF, DOE, DOD, USDA, EPA, etc.) from 2019-2025. Show how much funding goes to different research stages, application areas, and whether research considers commercial viability.
+**Goal**: Identify and characterize federal funding for climate biotechnology research across all agencies (NSF, DOE, DOD, USDA, EPA, etc.) from 2016-2025. Show how much funding goes to different research stages, application areas, and whether research considers commercial viability.
 
-**Time period**: FY2019-FY2025 federal grants from NSF Award API + USASpending.gov
+**Time period**: FY2016-FY2025 federal grants from NSF Award API + USASpending.gov
 
 ---
 
@@ -336,14 +336,14 @@ Compare to original Stage 2 results to see if accuracy improved. If yes, use ref
 
 ---
 
-### PHASE 2: Production Run (2019-2025)
+### PHASE 2: Production Run (2016-2025)
 
 **Purpose**: Apply the validated methodology to the full dataset.
 
 **When to start**: When your 2019 validation accuracy is >90% on all dimensions.
 
 **What changes**: 
-- Process all years (2019-2025) instead of just 2019
+- Process all years (2016-2025) instead of just the 2019 validation subset
 - Set `TEST_MODE = False` to process all grants, not just validation set
 - Use `*_multiyear.py` scripts instead of `*_2019.py` scripts
 - Files have `_all_years` suffix instead of `_2019`
@@ -351,12 +351,15 @@ Compare to original Stage 2 results to see if accuracy improved. If yes, use ref
 **Runtime**: ~10-15 hours total  
 **Cost**: ~$60 for LLM classification
 
-#### Step 0: Download All Years (2019-2025)
+#### Step 0: Download All Years (2016-2025)
 
 Repeat the 2019 download process for each year:
 
 ```
 data/
+├── 2016/
+├── 2017/
+├── 2018/
 ├── 2019/
 │   ├── NSF2019/*.json
 │   └── USASpending2019.csv
@@ -717,12 +720,12 @@ python step4_refine_stage2_classifications_multiyear.py --test
 **Time**: 1-2 days (mostly prompt engineering)  
 **Cost**: $5-10 (multiple iterations)
 
-### PHASE 2: Production (2019-2025)
+### PHASE 2: Production (2016-2025)
 
 **Goal**: Classify the full dataset
 
 ```bash
-# Download all years 2019-2025 (manual)
+# Download all years 2016-2025 (manual)
 
 cd scripts/grant_classifier
 
@@ -831,8 +834,8 @@ Get your API key at: https://console.anthropic.com/settings/keys
 
 **Placeholder - Fill in after running full pipeline**
 
-- Total climate biotech grants (2019-2025): [X,XXX grants]
-- Total climate biotech funding (2019-2025): [$X.XB]
+- Total climate biotech grants (2016-2025): [X,XXX grants]
+- Total climate biotech funding (2016-2025): [$X.XB]
 - % of total federal grant funding: [X.X%]
 - Funding by grant type:
   - Research: [X%]
@@ -933,7 +936,7 @@ echo 'ANTHROPIC_API_KEY=sk-ant-...' > .env
 | Phase | File Suffix | Example |
 |-------|------------|---------|
 | Development (2019) | `_2019.csv` or no suffix | `merged_2019.csv`, `stage1_biotech_fit.csv` |
-| Production (2019-2025) | `_all_years.csv` | `merged_all_years.csv`, `stage1_biotech_fit_all_years.csv` |
+| Production (2016-2025) | `_all_years.csv` | `merged_all_years.csv`, `stage1_biotech_fit_all_years.csv` |
 
 **Script naming**:
 - Development: `*_2019.py`
