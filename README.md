@@ -513,6 +513,7 @@ python step5_post_classification_industry_relevance_flags_multiyear.py
 - **Tier 2 (paired logic — trigger word + public-context, NOT in restrictive context)**:
   - Trigger: `disseminat\w+` or bare `proceedings` → TRUE if paired with any of: `community`, `publicly`, `broadly`, `widely`, `scientific community`, `research community`, `the public`, `published`, `distributed`, `online`, `open`
   - Trigger: `freely available` → TRUE only if paired with an output-noun within 80 chars (`results`, `tools`, `kits`, `R package`, `lectures`, `videos`, `software`, `models`, `protocols`, etc.). Bare `data` deliberately excluded — too ambiguous (matches input data too).
+  - Trigger: `present(ed|ing|s)? at <0–4 words> conferences?` → TRUE (catches "presented at regional and national conferences" where adjectives sit between "at" and the noun, which the literal Tier 1 phrase misses).
   - Restrictive override (forces FALSE even if Tier 2 trigger fires): `member-only`, `members only`, `consortium members only`, `restricted to`, `limited to`, `internal use only`, `proprietary`
 
 The two-tier scheme is monotonic: every TRUE under the original Tier 1 stays TRUE; only new TRUEs are added.
