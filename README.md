@@ -489,7 +489,7 @@ python step5_post_classification_industry_relevance_flags_multiyear.py
   - Infrastructure: Check abstract for keywords → TRUE/FALSE
   - Other: NULL (not applicable)
 
-**Keywords detected** (18 total):
+**Industry-framing keywords detected** (17 total):
 - Techno-economic analysis (TEA, technoeconomic)
 - Life cycle assessment (LCA, lifecycle assessment)
 - Economic feasibility/viability
@@ -497,6 +497,25 @@ python step5_post_classification_industry_relevance_flags_multiyear.py
 - Cost analysis, cost-benefit analysis
 - Scalability analysis, scale-up economics
 - Market analysis, market potential
+
+**The same script also adds `open_access_sharing` (TRUE/FALSE)** using a two-tier keyword scheme parallel to `industry_framing`:
+
+- **Tier 1 (single match → TRUE)** — 39 keywords:
+  - Open access: open access, open-access, openly available, publicly available, public access, free access
+  - Shared resources: shared facility / platform / resource / database / infrastructure; community resource / facility / platform
+  - Data sharing: data sharing, data repository, open data, open source, open-source
+  - Availability language: available to researchers / community / public; made available; will be shared / made available
+  - Collaborative access: collaborative facility, multi-user facility, user facility, shared access
+  - Pedagogical: open educational resource(s)
+  - Open platforms / repositories: open platform, open repository / repositories
+  - Public dissemination: conference proceedings; present(ed) at conferences / a conference
+
+- **Tier 2 (paired logic — trigger word + public-context, NOT in restrictive context)**:
+  - Trigger: `disseminat\w+` or bare `proceedings` → TRUE if paired with any of: `community`, `publicly`, `broadly`, `widely`, `scientific community`, `research community`, `the public`, `published`, `distributed`, `online`, `open`
+  - Trigger: `freely available` → TRUE only if paired with an output-noun within 80 chars (`results`, `tools`, `kits`, `R package`, `lectures`, `videos`, `software`, `models`, `protocols`, etc.). Bare `data` deliberately excluded — too ambiguous (matches input data too).
+  - Restrictive override (forces FALSE even if Tier 2 trigger fires): `member-only`, `members only`, `consortium members only`, `restricted to`, `limited to`, `internal use only`, `proprietary`
+
+The two-tier scheme is monotonic: every TRUE under the original Tier 1 stays TRUE; only new TRUEs are added.
 
 **Output**: `stage2_characterized_all_years_with_industry_framing.csv` ← **FINAL DATASET**
 
