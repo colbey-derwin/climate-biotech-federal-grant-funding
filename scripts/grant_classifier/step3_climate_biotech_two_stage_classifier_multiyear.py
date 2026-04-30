@@ -16,7 +16,7 @@ STAGE 2: Deep Characterization (KEEP grants only)
   - Grant type (research / infrastructure / deployment / other)
   - Research stage (Use Inspired Research / Bench Scale Tech Development / Piloting) - research only
   - Research approach (collaborative_interdisciplinary / single_focus) - public_facing research only
-  - Infrastructure subtype (physical / shared_resources / collaborative) - infrastructure only
+  - Infrastructure subtype (7-way taxonomy: physical_facilities / instrumentation / data_repositories / physical_repositories / learning_materials / community_building / other) - infrastructure only
   - Orientation (industry_facing / public_facing) - all grants
   - Application area (14 categories) - all grants
   - Uses Sonnet for nuanced classification
@@ -572,10 +572,62 @@ Key distinction: Simply using multiple techniques/methods or mentioning multiple
 
 (Then go to STEP 6)
 
-**STEP 5: Infrastructure Subtype** (infrastructure grants only)
-- Equipment/facilities/buildings? → physical
-- Databases/repositories/platforms? → shared_resources
-- Workshops/conferences/training? → collaborative
+**STEP 5: Infrastructure Subtype** (infrastructure grants only — 7-way taxonomy)
+
+**Apply ALL of these rules:**
+1. Classify by the grant's PRIMARY DELIVERABLE. If the infrastructure-flavored output is just a "broader impacts" side activity of a research grant, the parent grant_type would not be infrastructure. Assume the input you receive is genuinely infrastructure; choose the subtype that fits its primary deliverable.
+2. Funding to BUILD a facility/resource and funding to OPERATE the same facility/resource go in the SAME subtype. Lifecycle stage of the funding does not change the classification.
+3. If a grant funds multiple elements (e.g., a building plus instruments), classify by the dominant element — usually the headline deliverable or the larger dollar share.
+4. **Multi-component programs that all serve a single coherent purpose go in that purpose's subtype, NOT `other`.** Example: an extension program with workshops + educational materials + demo sites + monitoring networks all serving one IPM extension goal → `community_building`. The components individually look like multiple subtypes, but together they constitute one program with a clear primary character (extension/training). Use `other` only when the components serve genuinely independent purposes with no overarching program — see the `other` definition for details.
+5. **Centers and hubs with both a physical home AND multi-institution coordination:** classify by the dominant tangible deliverable. If a specific physical building/lab/equipment at a named institution is central to the grant's delivery (e.g., "User Facility at CCRC at UGA", "regional analytical chemistry laboratory at Michigan State"), the physical home wins → `physical_facilities`. If the coordination/network is the primary deliverable and the physical home is incidental (e.g., I/UCRC across 4 universities, RCN, NSF Engines spanning industry+academia+nonprofits), → `community_building`. If a center has multiple genuinely co-equal deliverables (physical equipment + user facility + research outputs + education + community-wide standards) with no single dominant element, → `other`.
+6. The "Includes" lists are illustrative, not exhaustive. Apply the key test to grants that don't exactly match an example.
+
+**physical_facilities** — Buildings, spaces, or structures that researchers occupy or operate from. The deliverable is the space itself, not specific instruments inside it.
+- Includes: lab buildings; research centers/hubs with a physical home; greenhouses; walk-in plant growth rooms; plant phenotyping facilities; field stations; pilot fermentation/biomanufacturing facilities (the building, not the fermenters); photobioreactor facilities (the room, not the individual reactors).
+- Key test: Is the deliverable a SPACE researchers OCCUPY or OPERATE FROM?
+- Not this: a discrete instrument or piece of equipment (use `instrumentation`); a curated material collection (use `physical_repositories`); a virtual coordinating entity with no physical building (use `community_building`).
+
+**instrumentation** — Discrete equipment or hardware that researchers operate as a tool — inputs go in, data or outputs come out. Single-purpose, even if large.
+- Includes: mass spectrometers; sequencers; gas chromatographs; individual bioreactors/fermenters; individual photobioreactors; bench-top growth chambers; automated culture/screening systems; instrument suites (NSF MRI awards).
+- Key test: Is the deliverable a SPECIFIC TOOL or UNIT researchers OPERATE, performing a defined function?
+- Not this: a building or occupied space (use `physical_facilities`); software platforms or computational models (use `data_repositories`).
+
+**Disambiguating physical_facilities vs instrumentation** — apply the deliverable test: space researchers occupy → physical_facilities; tool/unit researchers operate → instrumentation. Size isn't the test — occupy vs. operate is.
+- "Construction of a pilot fermentation facility" → physical_facilities (building)
+- "Acquisition of a 100L pilot fermenter" → instrumentation (the fermenter)
+- "Greenhouse complex for plant breeding" → physical_facilities (occupied space)
+- "Bench-top plant growth chamber" → instrumentation (discrete unit)
+- "Walk-in environmental growth room" → physical_facilities (researchers occupy it)
+
+**data_repositories** — Digital collections built or maintained for community use.
+- Includes: microbial/plant/soil microbiome genome databases; biocatalyst and enzyme databases; metabolic pathway databases; synthetic biology design tools; bioprocess simulation models; LCA tools for bioproducts; climate-biotech reference datasets; software platforms; code libraries; computational models.
+- Key test: Is the deliverable a DIGITAL RESOURCE that other researchers will access or use?
+- Not this: physical materials (use `physical_repositories`); structured pedagogy (use `learning_materials`); a discrete instrument (use `instrumentation`).
+
+**physical_repositories** — Curated physical collections of biological or reference materials, built or maintained for community use.
+- Includes: microbial culture collections (e.g., ATCC, NRRL); algae and cyanobacteria culture collections; seed banks (e.g., USDA NPGS); plant tissue archives; soil/sediment sample archives; type-strain collections; certified physical reference material libraries for environmental analytes.
+- Key test: Is the deliverable a CURATED COLLECTION of physical samples that other researchers will request from?
+- Not this: digital data (use `data_repositories`); a building where research happens (use `physical_facilities`).
+
+**learning_materials** — Produced pedagogical content.
+- Includes: synthetic biology curricula; bioenergy/bioproducts training modules; bioremediation lab manuals; climate-biotech educational websites; MOOCs on biomanufacturing or microbial engineering; instructional guides; open educational resources (OER) for climate biotech.
+- Key test: Is the deliverable PEDAGOGICAL CONTENT that learners will read, watch, or work through?
+- Not this: workshops/training events (use `community_building`); reference data (use `data_repositories`).
+
+**community_building** — Multi-institution coordination, training programs, and convening activities. The deliverable is human/institutional capacity, not an artifact.
+- Includes: bioenergy/synthetic biology workshops and conferences; REUs (Research Experiences for Undergraduates) in climate biotech labs; training programs in metabolic engineering or bioremediation; multi-institution networks (e.g., bioenergy research networks, climate biotech consortia); RCN-type awards; virtual research centers and hubs (no physical home, network of researchers and institutions).
+- Key test: Is the deliverable HUMAN or INSTITUTIONAL CAPACITY built through events, training, or coordinating networks?
+- Not this: produced content artifacts (use `learning_materials`); a physical building or facility (use `physical_facilities`).
+
+**other** — Infrastructure grant whose deliverable genuinely cannot be classified under any of the six specific subtypes above.
+- Use when: (a) the grant looks borderline-deployment (community-scale implementation of established practice rather than building a tool/facility for others); (b) the deliverable genuinely spans multiple subtypes with NO single dominant element AND the components do NOT all serve one coherent program (a center that is simultaneously a research producer, equipment provider, training program, user facility, and standards body with all elements equally weighted); or (c) it's an unusual infrastructure case that doesn't match any of the 6 patterns.
+- Key test: After applying each of the 6 specific subtype tests honestly, AND after asking "do the multiple components all serve one coherent overarching program?", is the deliverable still a poor fit for all 6?
+- IMPORTANT — do NOT use `other` when:
+  - The grant has multiple components but they all serve one coherent program (e.g., extension program → `community_building`; research center with a clear physical anchor → `physical_facilities`).
+  - One of the 6 subtypes fits even imperfectly. Pick the closest fit before resorting to `other`.
+  - The grant has just two or three component types — `other` is for genuinely irreducible multi-deliverable cases.
+- Note: choosing `other` is a useful signal — these grants warrant a closer look (often indicates an upstream `grant_type` edge case or a true integrated multi-deliverable program). It should be RARE — most infrastructure grants will fit one of the 6 specific subtypes after careful reading.
+
 (Then go to STEP 6)
 
 **STEP 6: Application Area** (ALL grants)
@@ -715,7 +767,7 @@ Format:
     "grant_type": "research" | "infrastructure" | "deployment" | "other",
     "research_stage": "Use Inspired Research" | "Bench Scale Tech Development" | "Piloting" | null,
     "research_approach": "collaborative_interdisciplinary" | "single_focus" | null,
-    "infrastructure_subtype": "physical" | "shared_resources" | "collaborative" | null,
+    "infrastructure_subtype": "physical_facilities" | "instrumentation" | "data_repositories" | "physical_repositories" | "learning_materials" | "community_building" | "other" | null,
     "orientation": "industry_facing" | "public_facing",
     "application_area": [one of the 14 areas listed above],
     "confidence": "high" | "low"

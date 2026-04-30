@@ -93,12 +93,14 @@ class AccuracyTester:
         self.merged = self.merged.merge(s1_subset, on='grant_id', how='left')
         
         # Merge Stage 2
-        s2_cols = [LLM_ID_COLUMN, 's2_grant_type', 's2_orientation', 's2_research_stage', 
-                   's2_application_area', 's2_research_approach', 's2_confidence']
+        s2_cols = [LLM_ID_COLUMN, 's2_grant_type', 's2_orientation', 's2_research_stage',
+                   's2_application_area', 's2_research_approach',
+                   's2_infrastructure_subtype', 's2_confidence']
         s2_subset = self.stage2[s2_cols].copy()
-        s2_subset.columns = ['grant_id', 'LLM_s2_grant_type', 'LLM_s2_orientation', 
-                             'LLM_s2_research_stage', 'LLM_s2_application_area', 
-                             'LLM_s2_research_approach', 'LLM_s2_confidence']
+        s2_subset.columns = ['grant_id', 'LLM_s2_grant_type', 'LLM_s2_orientation',
+                             'LLM_s2_research_stage', 'LLM_s2_application_area',
+                             'LLM_s2_research_approach',
+                             'LLM_s2_infrastructure_subtype', 'LLM_s2_confidence']
         self.merged = self.merged.merge(s2_subset, on='grant_id', how='left')
         
         print(f"✓ Merged dataset: {len(self.merged)} grants")
@@ -118,6 +120,20 @@ class AccuracyTester:
     
     def test_category(self, category_name, manual_col, llm_col, reasoning_col=None):
         """Test accuracy for a single category."""
+        # Safety: if the manual or LLM column is missing entirely (e.g., a new
+        # axis was added to the test list before the manual file was extended),
+        # return an empty result instead of crashing.
+        missing = [c for c in (manual_col, llm_col) if c not in self.merged.columns]
+        if missing:
+            return {
+                'category': category_name,
+                'total': 0,
+                'correct': 0,
+                'incorrect': 0,
+                'accuracy': 0.0,
+                'errors': [],
+                'note': f'Skipped — missing column(s): {missing}',
+            }
         # Filter to rows where both exist (valid comparison rows only)
         valid_mask = self.merged[manual_col].notna() & self.merged[llm_col].notna()
         valid_rows = self.merged[valid_mask].copy()
@@ -204,6 +220,7 @@ class AccuracyTester:
             ('Research Stage', 'YOUR_s2_research_stage', 'LLM_s2_research_stage'),
             ('Application Area', 'NEW_s2_application_area', 'LLM_s2_application_area'),  # Use NEW categories
             ('Research Approach', 'YOUR_s2_research_approach', 'LLM_s2_research_approach'),
+            ('Infrastructure Subtype', 'YOUR_s2_infrastructure_subtype', 'LLM_s2_infrastructure_subtype'),
         ]
         
         for name, manual_col, llm_col in categories:

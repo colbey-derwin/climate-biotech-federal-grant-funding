@@ -279,7 +279,7 @@ NOT interdisciplinary:
 
 **Key test:** Does the abstract explicitly use words like "interdisciplinary", "integration of disciplines", or "combining [field] and [field]"? If YES → collaborative_interdisciplinary. Otherwise → single_focus.
 
-**STEP 5: Infrastructure Subtype** (infrastructure grants only - already provided, do not change)
+**STEP 5: Infrastructure Subtype** (infrastructure grants only — already provided in input under the 7-way taxonomy: physical_facilities / instrumentation / data_repositories / physical_repositories / learning_materials / community_building / other; do not change)
 Use the infrastructure_subtype value provided in the input.
 
 **STEP 6: Application Area** (ALL grants)
