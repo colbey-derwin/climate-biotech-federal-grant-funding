@@ -50,7 +50,7 @@ OUTFILE = OUTPUT_DIR / "stage2_characterized_all_years_with_industry_framing.csv
 # KEYWORD LISTS — identical to biomining pipeline's add_keyword_flags_multiyear.py
 # =============================================================================
 
-# INDUSTRY FRAMING — 17 keywords
+# INDUSTRY FRAMING — 18 keywords
 INDUSTRY_KEYWORDS: List[str] = [
     # Techno-economic analysis
     "techno-economic analysis",
@@ -80,6 +80,9 @@ INDUSTRY_KEYWORDS: List[str] = [
     "scale-up economics",
     "market analysis",
     "market potential",
+
+    # Technology transfer
+    "technology transfer",
 ]
 
 # OPEN ACCESS / SHARING — 29 keywords
