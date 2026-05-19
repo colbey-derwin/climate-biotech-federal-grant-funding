@@ -27,18 +27,3 @@ WORKFLOW.md
 # Local-only scripts (retries, one-off diagnostics, ad-hoc work).
 # Not committed to personal repo, not synced to Sarah's workflow repo.
 local/
-
-# Patent-translation pipeline (private academic work, runs on Lens Trial
-# non-commercial license) — not for the public climate-biotech repo.
-scripts/patent_translation/
-
-# Biomining-side analysis — local-only, not for climate-biotech repo.
-scripts/patent_translation/biomining/
-
-# Ad-hoc infrastructure-subtype reclassification — local-only until subtypes
-# are confirmed and merged into the main pipeline.
-scripts/grant_classifier/adhoc_infrastructure_reclassify/
-
-# Infrastructure-side patent-translation pipeline — local-only, parallel to
-# scripts/patent_translation/biomining/
-scripts/patent_translation/infrastructure/
